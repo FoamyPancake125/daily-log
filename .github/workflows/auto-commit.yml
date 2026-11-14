@@ -1,0 +1,24 @@
+name: Daily auto-commit
+
+on:
+  schedule:
+    - cron: "17 16 * * *"   # ~8:17am PT
+    - cron: "43 3 * * *"    # ~7:43pm PT
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  commit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Make a commit
+        run: |
+          git config user.name  "Xiangting Ren"
+          git config user.email "83308960+FoamyPancake125@users.noreply.github.com"
+          echo "$(date -u '+%Y-%m-%d %H:%M:%S UTC')" >> log.txt
+          git add log.txt
+          git commit -m "Update log $(date -u '+%Y-%m-%d %H:%M')"
+          git push
