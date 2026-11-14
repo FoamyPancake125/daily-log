@@ -2,8 +2,13 @@ name: Daily auto-commit
 
 on:
   schedule:
-    - cron: "17 16 * * *"   # ~8:17am PT
-    - cron: "43 3 * * *"    # ~7:43pm PT
+    # 6 runs spread across the day (UTC). Times in PT are approximate.
+    - cron: "17 16 * * *"   # ~8am
+    - cron: "41 18 * * *"   # ~10:40am
+    - cron: "9 21 * * *"    # ~1pm
+    - cron: "52 23 * * *"   # ~3:50pm
+    - cron: "26 2 * * *"    # ~6:30pm
+    - cron: "48 5 * * *"    # ~9:50pm
   workflow_dispatch: {}
 
 permissions:
@@ -14,11 +19,26 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Make a commit
+      - name: Make some commits
         run: |
           git config user.name  "Xiangting Ren"
           git config user.email "83308960+FoamyPancake125@users.noreply.github.com"
-          echo "$(date -u '+%Y-%m-%d %H:%M:%S UTC')" >> log.txt
-          git add log.txt
-          git commit -m "Update log $(date -u '+%Y-%m-%d %H:%M')"
+
+          # Each day gets a "busyness" level shared by all its runs:
+          # 0 = quiet (~0-6 commits), 1 = normal (~0-12), 2 = busy (~6-24)
+          DAY=$(date -u -d '8 hours ago' +%j)
+          LEVEL=$(( (10#$DAY * 7919 + 13) % 3 ))
+          case $LEVEL in
+            0) N=$(( RANDOM % 2 )) ;;
+            1) N=$(( RANDOM % 3 )) ;;
+            2) N=$(( RANDOM % 4 + 1 )) ;;
+          esac
+          echo "Level $LEVEL -> $N commits this run"
+
+          for i in $(seq 1 $N); do
+            echo "$(date -u '+%Y-%m-%d %H:%M:%S UTC') #$i" >> log.txt
+            git add log.txt
+            git commit -m "Update log $(date -u '+%Y-%m-%d %H:%M') ($i)"
+            sleep 2
+          done
           git push
