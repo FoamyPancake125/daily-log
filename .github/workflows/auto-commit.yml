@@ -19,26 +19,35 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - name: Make some commits
         run: |
+          EMAIL="83308960+FoamyPancake125@users.noreply.github.com"
           git config user.name  "Xiangting Ren"
-          git config user.email "83308960+FoamyPancake125@users.noreply.github.com"
+          git config user.email "$EMAIL"
+          export TZ=America/Los_Angeles
 
           # Each day gets a "busyness" level shared by all its runs:
-          # 0 = quiet (~0-6 commits), 1 = normal (~0-12), 2 = busy (~6-24)
-          DAY=$(date -u -d '8 hours ago' +%j)
+          # 0 = quiet (~1-6 commits), 1 = normal (~1-12), 2 = busy (~6-24)
+          DAY=$(date +%j)
           LEVEL=$(( (10#$DAY * 7919 + 13) % 3 ))
           case $LEVEL in
             0) N=$(( RANDOM % 2 )) ;;
             1) N=$(( RANDOM % 3 )) ;;
             2) N=$(( RANDOM % 4 + 1 )) ;;
           esac
-          echo "Level $LEVEL -> $N commits this run"
+
+          # Never leave a day empty: if nothing has been committed yet today (PT),
+          # this run makes at least one.
+          TODAY=$(git log --author="$EMAIL" --since="$(date -d 'today 00:00' -Iseconds)" --oneline | wc -l)
+          if [ "$TODAY" -eq 0 ] && [ "$N" -lt 1 ]; then N=1; fi
+          echo "Level $LEVEL, already today: $TODAY -> $N commits this run"
 
           for i in $(seq 1 $N); do
-            echo "$(date -u '+%Y-%m-%d %H:%M:%S UTC') #$i" >> log.txt
+            echo "$(date '+%Y-%m-%d %H:%M:%S %Z') #$i" >> log.txt
             git add log.txt
-            git commit -m "Update log $(date -u '+%Y-%m-%d %H:%M') ($i)"
+            git commit -m "Update log $(date '+%Y-%m-%d %H:%M') ($i)"
             sleep 2
           done
           git push
